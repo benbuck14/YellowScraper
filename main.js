@@ -1,3 +1,4 @@
+//scrapes a single page from yellow pages for contact info and prints to console
 const express = require('express')
 const cheerio = require('cheerio')
 const PORT = 8787
