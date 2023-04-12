@@ -44,7 +44,9 @@ fetch(url)
         const provinceCode = $(this).find('[itemprop="addressRegion"]').text()
         const postalCode = $(this).find('[itemprop="postalCode"]').text()
         const phoneNumber = $(this).find('h4').text()
+        const _id = phoneNumber
         articles.push({
+            _id,
             businessName,
             streetAddress,
             city,
@@ -52,6 +54,7 @@ fetch(url)
             postalCode,
             phoneNumber
         })
+        console.log(articles)
     })
     if(pageCountNum>1)
     {
@@ -89,14 +92,9 @@ fetch(url)
                             phoneNumber
                         })
                     })
-                    if(currentFetch>6)
-                    {
-                        console.table(articles)
-                    }
                 }
             }
         }
-        // console.table(articles)
     })
 
 app.listen(PORT, ()=>console.log(`Server is alive on ${PORT}`))
