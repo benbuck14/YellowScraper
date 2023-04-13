@@ -1,11 +1,23 @@
-//scrapes a single page from yellow pages for contact info and prints to console
+//scrapes data from yellowpages.ca for contact info and adds to database
 const express = require('express')
 const cheerio = require('cheerio')
+const { MongoClient, ServerApiVersion } = require('mongodb');
 const PORT = 8787
+const dbURL = `mongodb+srv://benbuck14:Blue1House@yellowscraper.rb29gx1.mongodb.net/?retryWrites=true&w=majority`
+const database = new MongoClient(dbURL)
+
+const client = new MongoClient(dbURL, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+async function connectDB()
+{
+    await client.connect()
+}
+connectDB()
 
 const app = express()
 
-//searchTerm & searchLocation to be entered by user
+
+
+//searchTerm & searchLocation to be entered by user, hard coded for now
 
 let searchTerm = 'plumber'
 let searchLocation = 'Halifax+NS'
@@ -16,7 +28,6 @@ const url = `https://www.yellowpages.ca/search/si/1/${searchTerm}/${searchLocati
 fetch(url)
 .then(response=>response.text())
 .then(html=>{
-    //console.log(html)
     const firstFetchArray = []
     //cheerio is a module to parse and manipulate html 
     // $ is conventional reference to html doc from cheerio
@@ -41,35 +52,43 @@ fetch(url)
         const provinceCode = $(this).find('[itemprop="addressRegion"]').text()
         const postalCode = $(this).find('[itemprop="postalCode"]').text()
         const phoneNumber = $(this).find('h4').text()
-        const _id = phoneNumber
+        const id = phoneNumber
         //relevant data for first page captured above.  Push to array and update DB below
         firstFetchArray.push({
-            _id,
-            businessName,
-            streetAddress,
-            city,
-            provinceCode,
-            postalCode,
-            phoneNumber,
-            searchTerm
+            _id: id,
+            businessName: businessName,
+            streetAddress: streetAddress,
+            city: city,
+            provinceCode: provinceCode,
+            postalCode: postalCode,
+            phoneNumber: phoneNumber,
+            businessType: searchTerm,
+            location: searchLocation
         })
     })
-    //db.collection.updateMany(_id,firstFetchArray,upsert: true)
+    
+    try{
+        client.db('YellowScraper').collection('yellowContacts').updateMany({},{"$set":firstFetchArray},{upsert: true})
+                console.log('success')
+            }
+            catch(e){
+                console.log("ERROR: " + e)
+            }
+    
+            //{},firstFetchArray,{upsert: true}
+
     //If more than one page of results, loop through each page and repeat the above steps
     if(pageCountNum>1)
     {
-        for(let i=2;i<=pageCountNum;i++)
+        for(let i=2;i<=pageCountNum;i++) 
         {
             currentPage = i
             const loopUrl = `https://www.yellowpages.ca/search/si/${currentPage}/${searchTerm}/${searchLocation}`
-            console.log('This is loop: ' + i)
                 getNextPage(loopUrl)
                 async function getNextPage(currentUrl){
                     const loopFetchArray = []
                     const response = await fetch(currentUrl)
                     const html = await response.text()
-                    console.log('This is fetch:'+ i)
-                    let currentFetch = i
                     const $ = cheerio.load(html)
                     const pageCountText = $('.pageCount').find('span:nth-child(2)').text()
                     const pageCountNum = parseInt(pageCountText)
@@ -93,11 +112,12 @@ fetch(url)
                             provinceCode,
                             postalCode,
                             phoneNumber,
-                            searchTerm
+                            searchTerm,
+                            searchLocation
                         })
                     })
                     //db.collection.updateMany(_id,loopFetchArray,upsert: true)
-                    console.table(loopFetchArray)
+                    //console.table(loopFetchArray)
                 }
             }
         }
