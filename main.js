@@ -10,11 +10,12 @@ const client = new MongoClient(dbURL, { useNewUrlParser: true, useUnifiedTopolog
 async function connectDB()
 {
     await client.connect()
+    await client.db("admin").command({ ping: 1 });
+    console.log("Pinged your deployment. You successfully connected to MongoDB!");
 }
 connectDB()
 
 const app = express()
-
 
 
 //searchTerm & searchLocation to be entered by user, hard coded for now
@@ -54,7 +55,7 @@ fetch(url)
         const phoneNumber = $(this).find('h4').text()
         const id = phoneNumber
         //relevant data for first page captured above.  Push to array and update DB below
-        firstFetchArray.push({
+        let currentContactObj = {
             _id: id,
             businessName: businessName,
             streetAddress: streetAddress,
@@ -64,16 +65,16 @@ fetch(url)
             phoneNumber: phoneNumber,
             businessType: searchTerm,
             location: searchLocation
-        })
+        }
+        
+        try{
+            client.db('YellowScraper').collection('yellowContacts').updateOne({_id: id},{$set:currentContactObj},{upsert: true})
+            console.log('success')
+        }
+        catch(e){
+            console.log("ERROR: " + e)
+        }
     })
-    
-    try{
-        client.db('YellowScraper').collection('yellowContacts').updateMany({},{"$set":firstFetchArray},{upsert: true})
-                console.log('success')
-            }
-            catch(e){
-                console.log("ERROR: " + e)
-            }
     
             //{},firstFetchArray,{upsert: true}
 
@@ -103,18 +104,26 @@ fetch(url)
                         const provinceCode = $(this).find('[itemprop="addressRegion"]').text()
                         const postalCode = $(this).find('[itemprop="postalCode"]').text()
                         const phoneNumber = $(this).find('h4').text()
-                        const _id = phoneNumber
-                        loopFetchArray.push({
-                            _id,
-                            businessName,
-                            streetAddress,
-                            city,
-                            provinceCode,
-                            postalCode,
-                            phoneNumber,
-                            searchTerm,
-                            searchLocation
-                        })
+                        const id = phoneNumber
+                        let currentContactObj = {
+                            _id: id,
+                            businessName: businessName,
+                            streetAddress: streetAddress,
+                            city: city,
+                            provinceCode: provinceCode,
+                            postalCode: postalCode,
+                            phoneNumber: phoneNumber,
+                            businessType: searchTerm,
+                            location: searchLocation
+                        }
+                        
+                        try{
+                            client.db('YellowScraper').collection('yellowContacts').updateOne({_id: id},{$set:currentContactObj},{upsert: true})
+                            console.log('success')
+                        }
+                        catch(e){
+                            console.log("ERROR: " + e)
+                        }
                     })
                     //db.collection.updateMany(_id,loopFetchArray,upsert: true)
                     //console.table(loopFetchArray)
